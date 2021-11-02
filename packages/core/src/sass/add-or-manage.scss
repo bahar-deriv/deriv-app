@@ -1,0 +1,162 @@
+.add-or-manage {
+    flex-direction: row; /* fix for Safari */
+    flex-wrap: wrap;
+
+    form {
+        flex-direction: column;
+    }
+    @include mobile {
+        flex-direction: column;
+        flex-wrap: unset;
+        overflow-x: hidden;
+        overflow-y: auto;
+
+        & .account-wizard__btn-area {
+            & .dc-btn,
+            & .dc-btn:last-child {
+                min-width: unset;
+                margin: 0 1.6rem;
+            }
+        }
+        & .change-currency {
+            margin-bottom: 1.6rem;
+        }
+        & .dc-form-submit-button {
+            position: relative;
+            border: none;
+        }
+    }
+}
+
+.status-dialog {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    position: relative;
+    flex-grow: 1;
+    width: min-content;
+    padding: 2rem 2rem 1rem;
+
+    &__icon-area {
+        display: flex;
+        align-items: center;
+        width: auto;
+        justify-content: center;
+        position: relative;
+
+        .bottom-right-overlay {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 3rem;
+            height: 3rem;
+        }
+        svg.inline-icon {
+            width: 90px;
+            height: 120px;
+        }
+        svg {
+            display: block;
+
+            &.dc-icon {
+                &--red {
+                    margin: 0 1rem;
+                }
+            }
+
+            @include mobile {
+                max-width: 96px;
+                height: auto;
+            }
+        }
+        &--xlarge,
+        &--large {
+            width: auto;
+
+            .bottom-right-overlay {
+                width: 48px;
+                height: 48px;
+                right: -1rem;
+                bottom: -1rem;
+
+                @include mobile {
+                    max-width: 36px;
+                    height: auto;
+                }
+            }
+        }
+        &--xlarge {
+            svg:first-child {
+                width: 128px;
+                height: 128px;
+            }
+        }
+        &--large {
+            svg.inline-icon {
+                width: 120px;
+                height: 120px;
+            }
+        }
+        &--center {
+            justify-content: center;
+            width: auto;
+        }
+    }
+    &__body-area {
+        flex-grow: 1;
+
+        h2 {
+            @include typeface(--title-center-bold-black);
+            margin-top: 2rem;
+            color: var(--text-general);
+
+            @include mobile {
+                line-height: 24px;
+                margin: 1.6rem 0 0.8rem;
+            }
+        }
+        p {
+            @include typeface(--paragraph-left-normal-black);
+            padding: 1rem;
+            text-align: center;
+            text-transform: none;
+            color: var(--text-general);
+
+            @include mobile {
+                padding: 0 1rem;
+            }
+        }
+        &--no-grow {
+            flex-grow: 0;
+        }
+    }
+    &__btn-area {
+        margin: 2rem 0 1rem;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+
+        & .dc-btn {
+            margin: 0 0.5rem;
+            height: 4rem;
+
+            @include mobile {
+                width: 100%;
+                margin: 0 0.8rem;
+            }
+        }
+        @include mobile {
+            height: 88px;
+            align-items: center;
+            border-top: 2px solid var(--border-disabled);
+            margin: 0;
+        }
+    }
+    @include mobile {
+        justify-content: flex-start;
+        width: 100%;
+        height: 100%;
+        padding: 2rem 0 0;
+    }
+}

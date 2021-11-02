@@ -1,0 +1,2 @@
+./{script,src}/**/*.{js,jsx,scss}:
+  - prettier --write

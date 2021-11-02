@@ -1,0 +1,12 @@
+.modal__container.modal__real-account-signup-modal {
+    .dc-vertical-tab {
+        &__content {
+            padding: 0 !important;
+        }
+    }
+}
+
+.account-signup-loader {
+    width: 100%;
+    height: 100%;
+}

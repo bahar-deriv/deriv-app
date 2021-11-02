@@ -1,0 +1,23 @@
+.bot {
+    &__chart-container {
+        position: relative;
+
+        .cq-context {
+            div.ciq-chart {
+                div.stx_jump_today.home > svg {
+                    top: 10px;
+                    left: 8px;
+                    padding: 0;
+                    position: absolute;
+                }
+            }
+        }
+        .injectionDiv {
+            // Hide scratch workspace when switch to chart
+            display: none;
+        }
+        .cq-dialog-portal {
+            position: absolute;
+        }
+    }
+}
