@@ -149,7 +149,7 @@ define("./service-worker.js",['./workbox-9fa588b0'], (function (workbox) { 'use 
     "url": "/js/core.account.8647e3baac8572e4ddb6.js",
     "revision": null
   }, {
-    "url": "/js/core.bot.37cf45f5ccbdee6ab847.js",
+    "url": "/js/core.bot.8d0e7e0c64901fd45a57.js",
     "revision": null
   }, {
     "url": "/js/core.cashier.b9999db6a2059964fc88.js",
@@ -227,7 +227,7 @@ define("./service-worker.js",['./workbox-9fa588b0'], (function (workbox) { 'use 
     "url": "/js/core.main~components_src_components_l.28bbe556e3b5da95bfd7.js",
     "revision": null
   }, {
-    "url": "/js/core.main~s.06b23078cc94fa1083f8.js",
+    "url": "/js/core.main~s.a4337bf1c229418b8b5f.js",
     "revision": null
   }, {
     "url": "/js/core.reality-check-modal.060b969acf7b4b835645.js",
