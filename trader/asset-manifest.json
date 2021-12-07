@@ -1,0 +1,21 @@
+{
+  "trader.js": "/trader/js/trader.js",
+  "CFDStore.js": "/trader/js/CFDStore.js",
+  "trader-app.css": "/trader/css/trader.trader-app.388503fa1ac87c5fd5f6.css",
+  "trader-app.js": "/trader/js/trader.trader-app.e62d423b9326552b0736.js",
+  "trade-modals.js": "/trader/js/trader.trade-modals.8c911ff7eed2602e0f88.js",
+  "error-component.js": "/trader/js/trader.error-component.2fda8d1dcbcfeada2297.js",
+  "contract.js": "/trader/js/trader.contract.b6d40fec4b08ba124a25.js",
+  "cfd.css": "/trader/css/trader.cfd.a6a7e1992c40d4568c25.css",
+  "cfd.js": "/trader/js/trader.cfd.f0226215c78cee28afec.js",
+  "reports.css": "/trader/css/trader.reports.bc43bcd3795ef01e5438.css",
+  "reports.js": "/trader/js/trader.reports.f507b710320f91d13fc1.js",
+  "screen-small.css": "/trader/css/trader.screen-small.71dabe5d9defd29ad33e.css",
+  "screen-small.js": "/trader/js/trader.screen-small.745e36dce20c65ee5f32.js",
+  "screen-large.js": "/trader/js/trader.screen-large.902472f97dcd08ceaa3e.js",
+  "settings-chart.js": "/trader/js/trader.settings-chart.4ca2eadf24318416afe6.js",
+  "two-month-picker.js": "/trader/js/trader.two-month-picker.73796c6d17ac1cf0a81b.js",
+  "trader/js/trader.vendors-node_modules_formik_dist_formik_esm_js.js": "/trader/js/trader.vendors-node_modules_formik_dist_formik_esm_js.781da5ac72d286b9bb4c.js",
+  "trader/js/trader.vendors-node_modules_classnames_index_js-node_modules_extend_index_js-node_modules_lodash_deb-c9ff82.js": "/trader/js/trader.vendors-node_modules_classnames_index_js-node_modules_extend_index_js-node_modules_lodash_deb-c9ff82.be9b1fa99cbe332f7880.js",
+  "trader/js/trader.Modules_Trading_Components_Form_TradeParams_Multiplier_expiration_jsx-Modules_Trading_Compone-90e657.js": "/trader/js/trader.Modules_Trading_Components_Form_TradeParams_Multiplier_expiration_jsx-Modules_Trading_Compone-90e657.bc2c5e75b36b5790f3c9.js"
+}
