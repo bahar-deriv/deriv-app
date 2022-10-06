@@ -7,7 +7,7 @@ type TCashierNotificationsProps = {
 
 const CashierNotifications = ({ p2p_notification_count }: TCashierNotificationsProps) => (
     <React.Fragment>
-        <Icon icon='IcCashier' className='header__icon' />
+        {/* <Icon icon='IcCashier' className='header__icon' /> */}
         {!!p2p_notification_count && <Counter className='cashier__counter' count={p2p_notification_count} />}
     </React.Fragment>
 );
