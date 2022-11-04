@@ -1,12 +1,12 @@
 import { getPreBuildDVRs } from '@deriv/shared';
-import { template } from '_common/utility';
+import { template } from '../utility';
 import Error from './errors';
 
 class Validator {
-    constructor(input, rules, store = null) {
+    constructor(input, rules, store) {
         this.input = input;
         this.rules = rules;
-        this.store = store;
+        this.store = store || null;
         this.errors = new Error();
 
         this.error_count = 0;

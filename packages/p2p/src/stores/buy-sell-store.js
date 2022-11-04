@@ -7,6 +7,7 @@ import { textValidator, lengthValidator } from 'Utils/validations';
 import { countDecimalPlaces } from 'Utils/string';
 import { removeTrailingZeros } from 'Utils/format-value';
 import BaseStore from 'Stores/base_store';
+import { api_error_codes } from '../constants/api-error-codes';
 
 export default class BuySellStore extends BaseStore {
     @observable api_error_message = '';
@@ -47,14 +48,6 @@ export default class BuySellStore extends BaseStore {
     };
     filter_payment_methods = [];
     payment_method_ids = [];
-
-    // eslint-disable-next-line class-methods-use-this
-    get sort_list() {
-        return [
-            { text: localize('Exchange rate (Default)'), value: 'rate' },
-            { text: localize('Completion rate'), value: 'completion' },
-        ];
-    }
 
     @computed
     get account_currency() {
@@ -97,6 +90,10 @@ export default class BuySellStore extends BaseStore {
 
     @computed
     get rendered_items() {
+        const filtered_items = this.items.filter(item =>
+            this.table_type === buy_sell.BUY ? item.type === buy_sell.SELL : item.type === buy_sell.BUY
+        );
+
         if (isMobile()) {
             if (this.search_term) {
                 if (this.search_results.length) {
@@ -107,7 +104,7 @@ export default class BuySellStore extends BaseStore {
             // This allows for the sliding animation on the Buy/Sell toggle as it pushes
             // an empty item with an item that holds the same height of the toggle container.
             // Also see: buy-sell-row.jsx
-            return [{ id: 'WATCH_THIS_SPACE' }, ...this.items];
+            return [{ id: 'WATCH_THIS_SPACE' }, ...filtered_items];
         }
 
         if (this.search_term) {
@@ -116,13 +113,22 @@ export default class BuySellStore extends BaseStore {
             }
             return [{ id: 'NO_MATCH_ROW' }];
         }
-        return this.items;
+
+        return filtered_items;
     }
 
     @computed
     get should_filter_by_payment_method() {
         const { my_profile_store } = this.root_store;
         return my_profile_store.payment_methods_list_values !== this.selected_payment_method_value;
+    }
+
+    // eslint-disable-next-line class-methods-use-this
+    get sort_list() {
+        return [
+            { text: localize('Exchange rate (Default)'), value: 'rate' },
+            { text: localize('User rating'), value: 'rating' },
+        ];
     }
 
     @action.bound
@@ -281,7 +287,7 @@ export default class BuySellStore extends BaseStore {
                             }
                         }
                         // Added a check to prevent console errors
-                    } else if (response && response.error.code === 'PermissionDenied') {
+                    } else if (response && response.error.code === api_error_codes.PERMISSION_DENIED) {
                         this.root_store.general_store.setIsBlocked(true);
                     } else {
                         this.setApiErrorMessage(response?.error.message);

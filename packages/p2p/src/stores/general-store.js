@@ -6,16 +6,24 @@ import { localize, Localize } from 'Components/i18next';
 import { convertToMillis, getFormattedDateString } from 'Utils/date-time';
 import { createExtendedOrderDetails } from 'Utils/orders';
 import { init as WebsocketInit, requestWS, subscribeWS } from 'Utils/websocket';
-import { order_list } from '../constants/order-list';
+import { order_list } from 'Constants/order-list';
+import { buy_sell } from 'Constants/buy-sell';
+import { api_error_codes } from '../constants/api-error-codes';
 
 export default class GeneralStore extends BaseStore {
     @observable active_index = 0;
     @observable active_notification_count = 0;
     @observable advertiser_id = null;
+    @observable advertiser_buy_limit = null;
+    @observable advertiser_sell_limit = null;
+    @observable block_unblock_user_error = '';
     @observable balance;
     @observable inactive_notification_count = 0;
     @observable is_advertiser = false;
+    @observable is_advertiser_blocked = null;
     @observable is_blocked = false;
+    @observable is_block_unblock_user_loading = false;
+    @observable is_block_user_modal_open = false;
     @observable is_listed = false;
     @observable is_loading = false;
     @observable is_p2p_blocked_for_pa = false;
@@ -28,8 +36,10 @@ export default class GeneralStore extends BaseStore {
     @observable parameters = null;
     @observable poi_status = null;
     @observable.ref props = {};
+    @observable review_period;
     @observable should_show_real_name = false;
     @observable should_show_popup = false;
+    @observable user_blocked_count = 0;
     @observable user_blocked_until = null;
     @observable is_high_risk_fully_authed_without_fa = false;
     @observable is_modal_open = false;
@@ -85,20 +95,56 @@ export default class GeneralStore extends BaseStore {
     }
 
     @action.bound
+    blockUnblockUser(should_block, advertiser_id, should_set_is_counterparty_blocked = true) {
+        const { advertiser_page_store } = this.root_store;
+        this.setIsBlockUnblockUserLoading(true);
+        requestWS({
+            p2p_advertiser_relations: 1,
+            [should_block ? 'add_blocked' : 'remove_blocked']: [advertiser_id],
+        }).then(response => {
+            if (response) {
+                if (!response.error) {
+                    this.setIsBlockUserModalOpen(false);
+                    if (should_set_is_counterparty_blocked) {
+                        const { p2p_advertiser_relations } = response;
+                        advertiser_page_store.setIsCounterpartyAdvertiserBlocked(
+                            p2p_advertiser_relations.blocked_advertisers.some(ad => ad.id === advertiser_id)
+                        );
+                    }
+                } else {
+                    this.setBlockUnblockUserError(response.error.message);
+                }
+            }
+            this.setIsBlockUnblockUserLoading(false);
+        });
+    }
+
+    @action.bound
     createAdvertiser(name) {
         requestWS({
             p2p_advertiser_create: 1,
             name,
         }).then(response => {
             const { sendbird_store, buy_sell_store } = this.root_store;
-            const { p2p_advertiser_create } = response;
+            const { error, p2p_advertiser_create } = response;
+            const {
+                daily_buy,
+                daily_buy_limit,
+                daily_sell,
+                daily_sell_limit,
+                id,
+                is_approved,
+                name: advertiser_name,
+            } = p2p_advertiser_create || {};
 
-            if (response.error) {
-                this.setNicknameError(response.error.message);
+            if (error) {
+                this.setNicknameError(error.message);
             } else {
-                this.setAdvertiserId(p2p_advertiser_create.id);
-                this.setIsAdvertiser(!!p2p_advertiser_create.is_approved);
-                this.setNickname(p2p_advertiser_create.name);
+                this.setAdvertiserId(id);
+                this.setAdvertiserBuyLimit(daily_buy_limit - daily_buy);
+                this.setAdvertiserSellLimit(daily_sell_limit - daily_sell);
+                this.setIsAdvertiser(!!is_approved);
+                this.setNickname(advertiser_name);
                 this.setNicknameError(undefined);
                 sendbird_store.handleP2pAdvertiserInfo(response);
                 this.toggleNicknamePopup();
@@ -119,6 +165,17 @@ export default class GeneralStore extends BaseStore {
         }
 
         return local_storage_settings;
+    }
+
+    @action.bound
+    getWebsiteStatus() {
+        requestWS({ website_status: 1 }).then(response => {
+            if (response && !response.error) {
+                const { p2p_config } = response.website_status;
+
+                this.setReviewPeriod(p2p_config.review_period);
+            }
+        });
     }
 
     @action.bound
@@ -144,6 +201,23 @@ export default class GeneralStore extends BaseStore {
                         // If order status changed, notify the user.
                         notification.is_seen = is_current_order;
                         notification.is_active = order_info.is_active_order;
+
+                        // Push notification for successful order completion
+                        const { advertiser_details, client_details, id, status, type } = new_order;
+
+                        if (
+                            type === buy_sell.BUY &&
+                            status === 'completed' &&
+                            client_details.loginid === client.loginid
+                        )
+                            this.showCompletedOrderNotification(advertiser_details.name, id);
+
+                        if (
+                            type === buy_sell.SELL &&
+                            status === 'completed' &&
+                            advertiser_details.loginid === client.loginid
+                        )
+                            this.showCompletedOrderNotification(client_details.name, id);
                     } else {
                         // If we have an old_order, but for some reason don't have a copy in local storage.
                         notifications.push(notification_obj);
@@ -169,6 +243,45 @@ export default class GeneralStore extends BaseStore {
         });
 
         this.updateP2pNotifications(notifications);
+    }
+
+    @action.bound
+    redirectToOrderDetails(order_id) {
+        const { order_store } = this.root_store;
+        this.redirectTo('orders');
+        this.setOrderTableType(order_list.INACTIVE);
+        order_store.setOrderId(order_id);
+    }
+
+    @action.bound
+    showCompletedOrderNotification(advertiser_name, order_id) {
+        const { order_store } = this.root_store;
+        const notification_key = `order-${order_id}`;
+
+        // we need to refresh notifications in notifications-store in the case of a bug when user closes the notification, the notification count is not synced up with the closed notification
+        this.props.refreshNotifications();
+
+        this.props.addNotificationMessage({
+            action: {
+                onClick: () => {
+                    if (order_store.order_id === order_id) {
+                        order_store.setIsRatingModalOpen(true);
+                    }
+                    this.redirectToOrderDetails(order_id);
+                },
+                text: localize('Give feedback'),
+            },
+            header: <Localize i18n_default_text='Your order {{order_id}} is complete' values={{ order_id }} />,
+            key: notification_key,
+            message: (
+                <Localize
+                    i18n_default_text='{{name}} has released your funds. <br/> Would you like to give your feedback?'
+                    values={{ name: advertiser_name }}
+                />
+            ),
+            platform: 'P2P',
+            type: 'p2p_completed_order',
+        });
     }
 
     @action.bound
@@ -288,6 +401,10 @@ export default class GeneralStore extends BaseStore {
         if (typeof this.disposeUserBarredReaction === 'function') {
             this.disposeUserBarredReaction();
         }
+
+        this.setActiveIndex(0);
+        this.props.refreshNotifications();
+        this.props.filterNotificationMessages();
     }
 
     @action.bound
@@ -337,8 +454,23 @@ export default class GeneralStore extends BaseStore {
     }
 
     @action.bound
+    setAdvertiserBuyLimit(advertiser_buy_limit) {
+        this.advertiser_buy_limit = advertiser_buy_limit;
+    }
+
+    @action.bound
+    setAdvertiserSellLimit(advertiser_sell_limit) {
+        this.advertiser_sell_limit = advertiser_sell_limit;
+    }
+
+    @action.bound
     setAppProps(props) {
         this.props = props;
+    }
+
+    @action.bound
+    setBlockUnblockUserError(block_unblock_user_error) {
+        this.block_unblock_user_error = block_unblock_user_error;
     }
 
     @action.bound
@@ -352,8 +484,23 @@ export default class GeneralStore extends BaseStore {
     }
 
     @action.bound
+    setIsAdvertiserBlocked(is_advertiser_blocked) {
+        this.is_advertiser_blocked = is_advertiser_blocked;
+    }
+
+    @action.bound
     setIsBlocked(is_blocked) {
         this.is_blocked = is_blocked;
+    }
+
+    @action.bound
+    setIsBlockUserModalOpen(is_block_user_modal_open) {
+        this.is_block_user_modal_open = is_block_user_modal_open;
+    }
+
+    @action.bound
+    setIsBlockUnblockUserLoading(is_block_unblock_user_loading) {
+        this.is_block_unblock_user_loading = is_block_unblock_user_loading;
     }
 
     @action.bound
@@ -470,6 +617,11 @@ export default class GeneralStore extends BaseStore {
     }
 
     @action.bound
+    setReviewPeriod(review_period) {
+        this.review_period = review_period;
+    }
+
+    @action.bound
     setShouldShowRealName(should_show_real_name) {
         this.should_show_real_name = should_show_real_name;
     }
@@ -477,6 +629,11 @@ export default class GeneralStore extends BaseStore {
     @action.bound
     setShouldShowPopup(should_show_popup) {
         this.should_show_popup = should_show_popup;
+    }
+
+    @action.bound
+    setUserBlockedCount(user_blocked_count) {
+        this.user_blocked_count = user_blocked_count;
     }
 
     @action.bound
@@ -497,20 +654,37 @@ export default class GeneralStore extends BaseStore {
 
     @action.bound
     updateAdvertiserInfo(response) {
-        const { p2p_advertiser_info } = response;
+        const {
+            daily_buy,
+            daily_buy_limit,
+            daily_sell,
+            daily_sell_limit,
+            blocked_until,
+            blocked_by_count,
+            id,
+            is_approved,
+            is_blocked,
+            is_listed,
+            name,
+        } = response?.p2p_advertiser_info || {};
+
         if (!response.error) {
-            this.setAdvertiserId(p2p_advertiser_info.id);
-            this.setIsAdvertiser(!!p2p_advertiser_info.is_approved);
-            this.setIsListed(!!p2p_advertiser_info.is_listed);
-            this.setNickname(p2p_advertiser_info.name);
-            this.setUserBlockedUntil(p2p_advertiser_info.blocked_until);
+            this.setAdvertiserId(id);
+            this.setAdvertiserBuyLimit(daily_buy_limit - daily_buy);
+            this.setAdvertiserSellLimit(daily_sell_limit - daily_sell);
+            this.setIsAdvertiser(!!is_approved);
+            this.setIsAdvertiserBlocked(!!is_blocked);
+            this.setIsListed(!!is_listed);
+            this.setNickname(name);
+            this.setUserBlockedUntil(blocked_until);
+            this.setUserBlockedCount(blocked_by_count);
         } else {
             this.ws_subscriptions.advertiser_subscription.unsubscribe();
-            if (response.error.code === 'RestrictedCountry') {
+            if (response.error.code === api_error_codes.RESTRICTED_COUNTRY) {
                 this.setIsRestricted(true);
-            } else if (response.error.code === 'AdvertiserNotFound') {
+            } else if (response.error.code === api_error_codes.ADVERTISER_NOT_FOUND) {
                 this.setIsAdvertiser(false);
-            } else if (response.error.code === 'PermissionDenied') {
+            } else if (response.error.code === api_error_codes.PERMISSION_DENIED) {
                 this.setIsBlocked(true);
                 this.setIsLoading(false);
                 return;
@@ -564,10 +738,7 @@ export default class GeneralStore extends BaseStore {
                 v => v.length <= 24,
                 v => /^[a-zA-Z0-9\\.@_-]{2,24}$/.test(v),
                 v => /^(?!(.*(.)\\2{4,})|.*[\\.@_-]{2,}|^([\\.@_-])|.*([\\.@_-])$)[a-zA-Z0-9\\.@_-]{2,24}$/.test(v),
-                v =>
-                    Array.from(v).every(
-                        word => (v.match(new RegExp(word === '.' ? `\\${word}` : word, 'g')) || []).length <= 5
-                    ),
+                v => !/([a-zA-Z0-9\\.@_-])\1{4}/.test(v),
             ],
         };
 
@@ -577,7 +748,7 @@ export default class GeneralStore extends BaseStore {
             localize('Nickname is too long'),
             localize('Can only contain letters, numbers, and special characters .- _ @.'),
             localize('Cannot start, end with, or repeat special characters.'),
-            localize('Cannot repeat a character more than 5 times.'),
+            localize('Cannot repeat a character more than 4 times.'),
         ];
 
         const errors = {};

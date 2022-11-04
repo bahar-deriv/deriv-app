@@ -14,7 +14,7 @@ export const validAddress = value => !/[`~!$%^&*_=+[}{\]\\"?><|]+/.test(value);
 export const validPostCode = value => value === '' || /^[A-Za-z0-9][A-Za-z0-9\s-]*$/.test(value);
 export const validTaxID = value => /(?!^$|\s+)[A-Za-z0-9./\s-]$/.test(value);
 export const validPhone = value => /^\+?([0-9-]+\s)*[0-9-]+$/.test(value);
-export const validLetterSymbol = value => /^([a-zA-Z'-.]+\s)*[a-zA-Z'-.]+$/.test(value);
+export const validLetterSymbol = value => /^[A-Za-z]+([a-zA-Z\.' -])*[a-zA-Z\.' -]+$/.test(value);
 export const validLength = (value = '', options) =>
     (options.min ? value.length >= options.min : true) && (options.max ? value.length <= options.max : true);
 export const validPassword = value => /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]+/.test(value);
@@ -34,11 +34,11 @@ const isMoreThanMax = (value, options) =>
 export const validNumber = (value, opts) => {
     const options = cloneObject(opts);
     let message = null;
-    if (options.allow_empty && value.length === 0) {
-        return true;
-    }
-
     let is_ok = true;
+
+    if (options.allow_empty && value.length === 0) {
+        return { is_ok };
+    }
     if ('min' in options && typeof options.min === 'function') {
         options.min = options.min();
     }
